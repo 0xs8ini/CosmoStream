@@ -1,3 +1,5 @@
+import jwt from "jsonwebtoken";
+
 import { ApiError } from "../utilities/apiErrorHandler.js";
 import { ApiResponse } from "../utilities/apiResponseHandler.js";
 import {
@@ -6,6 +8,11 @@ import {
   isEmailValid,
 } from "../utilities/validateUserRes.js";
 import { User } from "../models/user.model.js";
+
+const options = {
+  httpOnly: true,
+  secure: true,
+};
 
 const genAccessAndRefereshToken = async (userID) => {
   try {
@@ -133,11 +140,6 @@ const loginUser = async (req, res) => {
   user.refreshToken = refershToken;
   user.password = "";
 
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
@@ -162,11 +164,6 @@ const logoutUser = async (req, res) => {
     }
   );
 
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
   return res
     .status(200)
     .clearCookie("accessToken", options)
@@ -174,4 +171,49 @@ const logoutUser = async (req, res) => {
     .json(new ApiResponse(200, "User Succesfully Loggedout", {}));
 };
 
-export { registerUser, loginUser, logoutUser };
+const refershToken = async (req, res) => {
+  try {
+    const incomingRefereshToken =
+      req.cookies.refershToken || req.body.refershToken;
+
+    if (incomingRefereshToken) {
+      res.status(401).json(new ApiError(401, "Unauthorized Request"));
+    }
+
+    const decodedToken = jwt.verify(
+      incomingRefereshToken,
+      process.env.REFRESH_TOKEN_SEC_KEY
+    );
+
+    const user = await User.findById(decodedToken?._id);
+
+    if (!user) {
+      res.status(401).json(new ApiError(401, "Invalid Referesh Token"));
+    }
+
+    if (incomingRefereshToken !== user?.refreshToken) {
+      res
+        .status(401)
+        .json(new ApiError(401, "Refresh token is expired or used"));
+    }
+
+    const { accessToken, newRefreshToken } = await genAccessAndRefereshToken(
+      user.id
+    );
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
+      .json(
+        new ApiResponse(200, "Access Token Refreshed Succesfully", {
+          accessToken: accessToken,
+          refershToken: newRefreshToken,
+        })
+      );
+  } catch (error) {
+    res.status(401).json(new ApiError(401, "Invalid Refresh Token"));
+  }
+};
+
+export { registerUser, loginUser, logoutUser, refershToken };
