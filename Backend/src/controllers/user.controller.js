@@ -1,69 +1,101 @@
-import ApiError from "../utilities/apiErrorHandler.js";
-import ApiResponse from "../utilities/apiResponseHandler.js";
+import { ApiError } from "../utilities/apiErrorHandler.js";
+import { ApiResponse } from "../utilities/apiResponseHandler.js";
 import {
   isPasswdValid,
   isUserNameValid,
   isEmailValid,
-  doesUserExist,
 } from "../utilities/validateUserRes.js";
 import { User } from "../models/user.model.js";
 
 const registerUser = async (req, res) => {
-  const { email, password, userName } = req.body;
+  try {
+    const { email, password, userName } = req.body;
 
-  // Checking fields are not not empty
-  if (
-    [email, password, userName].some((field) => !field || field.trim() === "")
-  ) {
-    throw new ApiError(400, "All fields are required");
-  }
+    // Checking fields are given
+    if (!email || !password || !userName) {
+      return res
+        .status(400)
+        .json(
+          new ApiError(
+            400,
+            "All fields (email, password, userName) are required"
+          )
+        );
+    }
 
-  //   Checking email is valid
-  if (!isEmailValid(email)) {
-    throw new ApiError(400, "Email is not valid");
-  }
+    // Check if email is valid
+    if (!isEmailValid(email)) {
+      return res.status(400).json(new ApiError(400, "Email is not valid"));
+    }
 
-  //   Checking password is valid
-  if (!isPasswdValid(password)) {
-    throw new ApiError(
-      400,
-      "Password must be at least 8 characters long, include 1 letter, 1 number, and 1 special character"
+    // Check if password is valid
+    if (!isPasswdValid(password)) {
+      return res
+        .status(400)
+        .json(
+          new ApiError(
+            400,
+            "Password must be at least 8 characters long, include 1 letter, 1 number, and 1 special character"
+          )
+        );
+    }
+
+    // Check if username is valid
+    if (!isUserNameValid(userName)) {
+      return res
+        .status(400)
+        .json(
+          new ApiError(
+            400,
+            "Username must be 3-16 characters long and contain only letters, numbers, or underscores."
+          )
+        );
+    }
+
+    // Check if a user with the same email or username already exists
+    const doesUserExist = await User.findOne({
+      $or: [{ userName }, { email }],
+    });
+
+    if (doesUserExist) {
+      return res
+        .status(409)
+        .json(new ApiError(409, "User with email or username exists"));
+    }
+
+    // Create the user
+    const user = await User.create({
+      userName: userName.toLowerCase(),
+      password,
+      email,
+    });
+
+    const createdUser = await User.findById(user._id).select(
+      "-password -refreshToken"
     );
+
+    if (!createdUser) {
+      return res
+        .status(500)
+        .json(
+          new ApiError(500, "Something went wrong while creating the user")
+        );
+    }
+
+    return res.status(201).json(new ApiResponse(201, createdUser));
+  } catch (err) {
+    return res
+      .status(500)
+      .json(new ApiError(500, "Internal Server Error", err.message));
   }
-
-  //   Checking userName is valid
-  if (!isUserNameValid(userName)) {
-    throw new ApiError(
-      400,
-      "Username must be 3-16 characters long and contain only letters, numbers, or underscores."
-    );
-  }
-
-  // Checking does user Exist
-  if (doesUserExist) {
-    throw new ApiError(409, "User with email or userName exits");
-  }
-
-  const user = await User.create({
-    username: userName.toLowerCase(),
-    password,
-    email,
-  });
-
-  const createdUser = await User.findById(user._id).select(
-    "-password",
-    "-refreshToken"
-  ); // Select is used to reomve the filed you dont want
-
-  if (!createdUser) {
-    throw new ApiError(500, "Something Went wrong while creating the user");
-  }
-
-  return res.status(201).json(new ApiResponse(200, createdUser));
 };
 
-const loginUser = async (req, res) => {};
+const loginUser = async (req, res) => {
+  // Your login implementation here.
+};
 
-const logoutUser = async (req, res) => {};
+const logoutUser = async (req, res) => {
+  // Your logout implementation here.
+};
 
 export { registerUser, loginUser, logoutUser };

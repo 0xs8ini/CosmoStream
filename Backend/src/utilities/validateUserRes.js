@@ -1,4 +1,4 @@
-import { User } from "../models/user.model";
+import { User } from "../models/user.model.js";
 
 export const isEmailValid = (email) => {
   if (!email || email.trim() === "") return false;
@@ -18,10 +18,3 @@ export const isUserNameValid = (userName) => {
   const userNameRegex = /^[a-zA-Z0-9_]{3,16}$/;
   return userNameRegex.test(userName);
 };
-
-export const doesUserExist = async () => {
-  return await User.findOne({
-    $or: [{ userName }, { email }],
-  });
-};
-
