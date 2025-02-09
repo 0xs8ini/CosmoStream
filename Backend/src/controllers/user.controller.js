@@ -7,6 +7,23 @@ import {
 } from "../utilities/validateUserRes.js";
 import { User } from "../models/user.model.js";
 
+const genAccessAndRefereshToken = async (userID) => {
+  try {
+    const user = await User.findById(userID);
+    const accessToken = user.genAccessToken();
+    const refershToken = user.genRefreshToken();
+
+    user.refreshToken = refershToken;
+    await user.save({ validateBeforeSave: false });
+
+    return { accessToken, refershToken };
+  } catch (error) {
+    return res
+      .status(500)
+      .json(new ApiError(500, "Something went wrong while generating tokens"));
+  }
+};
+
 const registerUser = async (req, res) => {
   try {
     const { email, password, userName } = req.body;
@@ -91,11 +108,70 @@ const registerUser = async (req, res) => {
 };
 
 const loginUser = async (req, res) => {
-  // Your login implementation here.
+  const { email, password } = req.body;
+
+  if (!email) {
+    return res.status(400).json(new ApiError(400, "Email is required"));
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.status(404).json(new ApiError(404, "User Not Found"));
+  }
+
+  const isPasswdValidBoolean = await user.checkPassword(password);
+
+  if (!isPasswdValidBoolean) {
+    return res.status(401).json(new ApiError(401, "Invalid Credentials"));
+  }
+
+  const { accessToken, refershToken } = await genAccessAndRefereshToken(
+    user._id
+  );
+
+  user.refreshToken = refershToken;
+  user.password = "";
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refershToken, options)
+    .json(
+      new ApiResponse(200, "User Logged In Successfully", {
+        user: user,
+        accessToken,
+        refershToken,
+      })
+    );
 };
 
 const logoutUser = async (req, res) => {
-  // Your logout implementation here.
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: { refreshToken: undefined },
+    },
+    {
+      new: true,
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, "User Succesfully Loggedout", {}));
 };
 
 export { registerUser, loginUser, logoutUser };

@@ -69,7 +69,7 @@ userSchema.methods.genRefreshToken = function () {
     },
     process.env.ACCESS_TOKEN_SEC_KEY,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY_TIME,
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY_TIME
     }
   );
 };

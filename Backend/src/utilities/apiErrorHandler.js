@@ -9,8 +9,6 @@ class ApiError extends Error {
     this.statusCode = statusCode;
     this.data = null;
     this.success = false;
-
-    // Ensure 'errors' is an array and correctly set it to message if it's empty
     this.errors =
       Array.isArray(errors) && errors.length > 0 ? errors : [message];
 
