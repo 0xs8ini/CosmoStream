@@ -18,12 +18,12 @@ const genAccessAndRefereshToken = async (userID) => {
   try {
     const user = await User.findById(userID);
     const accessToken = user.genAccessToken();
-    const refershToken = user.genRefreshToken();
+    const refreshToken = user.genRefreshToken();
 
-    user.refreshToken = refershToken;
+    user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
-    return { accessToken, refershToken };
+    return { accessToken, refreshToken };
   } catch (error) {
     return res
       .status(500)
@@ -133,22 +133,22 @@ const loginUser = async (req, res) => {
     return res.status(401).json(new ApiError(401, "Invalid Credentials"));
   }
 
-  const { accessToken, refershToken } = await genAccessAndRefereshToken(
+  const { accessToken, refreshToken } = await genAccessAndRefereshToken(
     user._id
   );
 
-  user.refreshToken = refershToken;
+  user.refreshToken = refreshToken;
   user.password = "";
 
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refershToken, options)
+    .cookie("refreshToken", refreshToken, options)
     .json(
       new ApiResponse(200, "User Logged In Successfully", {
         user: user,
         accessToken,
-        refershToken,
+        refreshToken,
       })
     );
 };
@@ -171,13 +171,13 @@ const logoutUser = async (req, res) => {
     .json(new ApiResponse(200, "User Succesfully Loggedout", {}));
 };
 
-const refershToken = async (req, res) => {
+const refreshToken = async (req, res) => {
   try {
     const incomingRefereshToken =
-      req.cookies.refershToken || req.body.refershToken;
+      req.cookies.refreshToken || req.body.refreshToken;
 
-    if (incomingRefereshToken) {
-      res.status(401).json(new ApiError(401, "Unauthorized Request"));
+    if (!incomingRefereshToken) {
+      return res.status(401).json(new ApiError(401, "Unauthorized Request"));
     }
 
     const decodedToken = jwt.verify(
@@ -188,11 +188,11 @@ const refershToken = async (req, res) => {
     const user = await User.findById(decodedToken?._id);
 
     if (!user) {
-      res.status(401).json(new ApiError(401, "Invalid Referesh Token"));
+      return res.status(401).json(new ApiError(401, "Invalid Referesh Token"));
     }
 
     if (incomingRefereshToken !== user?.refreshToken) {
-      res
+      return res
         .status(401)
         .json(new ApiError(401, "Refresh token is expired or used"));
     }
@@ -208,7 +208,7 @@ const refershToken = async (req, res) => {
       .json(
         new ApiResponse(200, "Access Token Refreshed Succesfully", {
           accessToken: accessToken,
-          refershToken: newRefreshToken,
+          refreshToken: newRefreshToken,
         })
       );
   } catch (error) {
@@ -216,4 +216,4 @@ const refershToken = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, logoutUser, refershToken };
+export { registerUser, loginUser, logoutUser, refreshToken };

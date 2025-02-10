@@ -16,7 +16,10 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 import authRouter from "./routes/auth.routes.js";
+import movieRoutes from "./routes/movies.routes.js";
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/movie", movieRoutes);
+app.use("/api/v1webseries")
 
 export { app };
