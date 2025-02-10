@@ -5,6 +5,11 @@ yarn-error.log
 package-lock.json
 .yarn-integrity
 
+node_modules
+dist
+dist-ssr
+*.local
+
 # Environment variables
 .env
 .env.local
