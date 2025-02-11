@@ -16,10 +16,14 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 import authRouter from "./routes/auth.routes.js";
-import movieRoutes from "./routes/movies.routes.js";
+import moviesRoutes from "./routes/movies.routes.js";
+import webseriesRoutes from "./routes/webseries.routes.js";
+import searchRoutes from "./routes/search.routes.js";
+import loginCheck from "./middlewares/loginCheck.middleware.js";
 
 app.use("/api/v1/auth", authRouter);
-app.use("/api/v1/movie", movieRoutes);
-app.use("/api/v1webseries")
+app.use("/api/v1/movie", loginCheck, moviesRoutes);
+app.use("/api/v1/webseries", loginCheck, webseriesRoutes);
+app.use("/api/v1/search", loginCheck, searchRoutes);
 
 export { app };

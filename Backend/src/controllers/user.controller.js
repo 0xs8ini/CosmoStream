@@ -154,21 +154,27 @@ const loginUser = async (req, res) => {
 };
 
 const logoutUser = async (req, res) => {
-  await User.findByIdAndUpdate(
-    req.user._id,
-    {
-      $set: { refreshToken: undefined },
-    },
-    {
-      new: true,
-    }
-  );
+  try {
+    await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set: { refreshToken: undefined },
+      },
+      {
+        new: true,
+      }
+    );
 
-  return res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, "User Succesfully Loggedout", {}));
+    return res
+      .status(200)
+      .clearCookie("accessToken", options)
+      .clearCookie("refreshToken", options)
+      .json(new ApiResponse(200, "User Succesfully Loggedout", {}));
+  } catch (error) {
+    res
+      .status(500)
+      .json(new ApiError(500, "Something Went Wrong while logging out user"));
+  }
 };
 
 const refreshToken = async (req, res) => {

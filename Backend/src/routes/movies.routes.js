@@ -5,7 +5,7 @@ import {
   getMovieDetail,
   getMovieTrailer,
   getMoviesCategory,
-} from "../controllers/movie.controller.js";
+} from "../controllers/movies.controller.js";
 
 const router = Router();
 
